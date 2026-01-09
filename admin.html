@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Admin Tracking Advanced</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+body { margin:0; font-family:sans-serif; }
+#map { height: 100vh; }
+#filter { position:absolute; top:10px; left:10px; z-index:1000; background:white; padding:5px 10px; border-radius:5px; }
+</style>
+</head>
+<body>
+
+<div id="filter">
+  <label>Filter online (detik): <input type="number" id="onlineFilter" value="60" style="width:50px;"> 
+  <button id="applyFilter">Apply</button></label>
+</div>
+
+<div id="map"></div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<script>
+// 🔹 Firebase config
+var firebaseConfig = {
+  apiKey: "AIzaSyA7suJ72v1Dqhq828aQcH_MTsiyVMIsJ_U",
+  authDomain: "data-base-715bc.firebaseapp.com",
+  databaseURL: "https://data-base-715bc-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "data-base-715bc",
+  storageBucket: "data-base-715bc.firebasestorage.app",
+  messagingSenderId: "148668359382",
+  appId: "1:148668359382:web:3c81659d4fd8fa0c099f77"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// 🔹 Setup map
+const map = L.map('map').setView([0,0],2);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OpenStreetMap' }).addTo(map);
+
+// 🔹 Marker semua user
+const markers = {};
+let filterSeconds = 60; // default filter online
+
+document.getElementById("applyFilter").onclick = () => {
+  filterSeconds = Number(document.getElementById("onlineFilter").value) || 60;
+  updateMarkers(lastSnapshot);
+};
+
+let lastSnapshot = null;
+
+// 🔹 Random color helper
+function getRandomColor() {
+  const letters = '0123456789ABCDEF';
+  let color = '#';
+  for (let i=0;i<6;i++) { color += letters[Math.floor(Math.random()*16)]; }
+  return color;
+}
+
+// 🔹 Update markers dengan filter
+function updateMarkers(snapshot) {
+  const now = Date.now();
+  snapshot.forEach(user => {
+    const data = user.val();
+    const age = now - data.time;
+    
+    // filter online
+    if(age > filterSeconds*1000) {
+      if(markers[user.key]) {
+        map.removeLayer(markers[user.key].marker);
+        delete markers[user.key];
+      }
+      return;
+    }
+    
+    const lastSeen = new Date(data.time).toLocaleTimeString();
+
+    if(!markers[user.key]) {
+      const icon = L.icon({
+        iconUrl: `https://via.placeholder.com/30/${getRandomColor().substring(1)}/ffffff?text=📍`,
+        iconSize: [30,30],
+        iconAnchor: [15,30]
+      });
+      const marker = L.marker([data.lat,data.lng],{icon}).addTo(map)
+        .bindPopup(`${data.name}<br>Last seen: ${lastSeen}`);
+      marker.on('click', () => { map.setView([data.lat,data.lng],18); });
+      markers[user.key] = {marker, icon};
+    } else {
+      markers[user.key].marker.setLatLng([data.lat,data.lng])
+        .setPopupContent(`${data.name}<br>Last seen: ${lastSeen}`);
+    }
+  });
+}
+
+// 🔹 Realtime listener
+db.ref("users").on("value", snapshot => {
+  lastSnapshot = snapshot;
+  updateMarkers(snapshot);
+});
+</script>
+
+</body>
+</html>

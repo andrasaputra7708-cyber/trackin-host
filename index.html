@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>User Tracking Interaktif</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+body { margin:0; font-family:sans-serif; background:#020617; color:white; text-align:center; }
+header { padding:10px; background:#111827; }
+#status { font-size:14px; opacity:0.8; margin-bottom:5px; }
+#map { height: calc(100vh - 60px); }
+</style>
+</head>
+<body>
+
+<header>
+  <div>📍 LIVE LOCATION TRACKING</div>
+  <div id="status">Menunggu izin lokasi...</div>
+</header>
+
+<div id="map"></div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<script>
+// 🔹 Firebase config
+var firebaseConfig = {
+  apiKey: "AIzaSyA7suJ72v1Dqhq828aQcH_MTsiyVMIsJ_U",
+  authDomain: "data-base-715bc.firebaseapp.com",
+  databaseURL: "https://data-base-715bc-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "data-base-715bc",
+  storageBucket: "data-base-715bc.firebasestorage.app",
+  messagingSenderId: "148668359382",
+  appId: "1:148668359382:web:3c81659d4fd8fa0c099f77"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// 🔹 User ID & nama
+let userName = prompt("Masukkan nama kamu:") || "User";
+const userId = "user_" + Math.random().toString(36).substr(2,6);
+
+// 🔹 Setup map
+const map = L.map('map').setView([0,0],15);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OpenStreetMap' }).addTo(map);
+
+// 🔹 Marker user
+let marker = L.marker([0,0]).addTo(map).bindPopup(userName);
+
+// 🔹 Geolocation
+if ("geolocation" in navigator) {
+  navigator.geolocation.watchPosition(pos => {
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+
+    marker.setLatLng([lat,lng]);
+    map.setView([lat,lng]);
+    marker.setPopupContent(userName + "<br>Live • ID: " + userId);
+    document.getElementById("status").innerText = "Live • " + userName;
+
+    // kirim ke Firebase
+    db.ref("users/" + userId).set({
+      name: userName,
+      lat: lat,
+      lng: lng,
+      time: Date.now()
+    });
+
+  }, err => {
+    document.getElementById("status").innerText = "Izin lokasi ditolak";
+  }, { enableHighAccuracy:true, maximumAge:0, timeout:5000 });
+} else { alert("Browser tidak mendukung GPS"); }
+</script>
+
+</body>
+</html>

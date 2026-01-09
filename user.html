@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>User Tracking</title>
+<style>
+body {
+  background: #020617;
+  color: white;
+  font-family: sans-serif;
+  text-align: center;
+  margin: 0;
+  padding: 0;
+}
+h3 {
+  margin-top: 20px;
+}
+#status {
+  margin-top: 10px;
+  font-size: 14px;
+}
+</style>
+</head>
+
+<body>
+
+<h3>📍 LIVE LOCATION TRACKING</h3>
+<p id="status">Menunggu izin lokasi...</p>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<script>
+/* 🔹 FIREBASE CONFIG */
+var firebaseConfig = {
+  apiKey: "AIzaSyA7suJ72v1Dqhq828aQcH_MTsiyVMIsJ_U",
+  authDomain: "data-base-715bc.firebaseapp.com",
+  databaseURL: "https://data-base-715bc-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "data-base-715bc",
+  storageBucket: "data-base-715bc.firebasestorage.app",
+  messagingSenderId: "148668359382",
+  appId: "1:148668359382:web:3c81659d4fd8fa0c099f77"
+};
+
+/* 🔹 INIT FIREBASE */
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+/* 🔹 USER ID OTOMATIS */
+const userId = "user_" + Math.random().toString(36).substr(2, 6);
+
+/* 🔹 TRACKING LOKASI */
+if ("geolocation" in navigator) {
+  navigator.geolocation.watchPosition(
+    pos => {
+      db.ref("users/" + userId).set({
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        time: Date.now()
+      });
+
+      document.getElementById("status").innerText =
+        "Live • ID: " + userId;
+    },
+    err => {
+      document.getElementById("status").innerText =
+        "Izin lokasi ditolak";
+    },
+    {
+      enableHighAccuracy: true,
+      maximumAge: 0,
+      timeout: 5000
+    }
+  );
+} else {
+  alert("Browser tidak mendukung GPS");
+}
+</script>
+
+</body>
+</html>
